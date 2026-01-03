@@ -45,6 +45,7 @@ class TrackerConfig:
 class ExportConfig:
     json_path: Optional[Path] = None
     csv_path: Optional[Path] = None
+    events_path: Optional[Path] = None
 
 
 @dataclass(frozen=True)
@@ -55,6 +56,9 @@ class AppConfig:
     output: Optional[Path]
     max_frames: Optional[int]
     dry_run: bool = False
+    rois_path: Optional[Path] = None
+    approach_seconds: float = 1.0
+    pick_area_delta: float = 0.2
     video: VideoConfig = field(default_factory=VideoConfig)
     detector: DetectorConfig = field(default_factory=DetectorConfig)
     tracker: TrackerConfig = field(default_factory=TrackerConfig)
@@ -76,6 +80,9 @@ def mode_defaults(mode: str) -> "AppConfig":
         output=None,
         max_frames=None,
         dry_run=False,
+        rois_path=None,
+        approach_seconds=1.0,
+        pick_area_delta=0.2,
         video=video,
         detector=detector,
         tracker=TrackerConfig(),

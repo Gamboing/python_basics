@@ -43,6 +43,11 @@
 10) **Incompatibilidades de ONNX (opset)**  
     - Re-exporta el modelo con opset ≥13 para ONNXRuntime 1.17.  
     - Revisa errores en consola; si faltan operadores, incluye implementaciones o cambia a una versión soportada.
+
+11) **ROIs no cargan o eventos vacíos**  
+    - Confirma que `--rois` apunta a un JSON válido con `id` + `points` o `rect`.  
+    - Revisa el log: si hay excepciones al cargar, el pipeline continúa sin ROIs.  
+    - Si no hay tracks dentro de ROIs, `events.csv` puede quedar vacío o con pocas filas.
 # Solución de problemas
 
 ## ONNXRuntime no encuentra el modelo

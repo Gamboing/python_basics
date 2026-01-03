@@ -18,6 +18,9 @@ python run.py \
   --source data/video.mp4 \
   --mode fast \
   --output runs/out.mp4 \
+  --log-level INFO \
+  --rois config/rois.json \
+  --events-csv runs/events.csv
   --log-level INFO
   --output runs/out.mp4
 ```
@@ -58,6 +61,25 @@ python run.py \
 
 - `--dry-run`: procesa 100 frames para probar rápido la ruta de datos y el modelo.
 - `--log-level`: controla verbosidad (DEBUG/INFO/WARNING) e imprime tiempos por etapa y FPS aproximado.
+- `--rois`: archivo JSON con polígonos/rectángulos para ROIs de interacción.
+- `--events-csv`: ruta para exportar eventos (Approach/Pick/Leave).
+- `--approach-seconds`: tiempo mínimo dentro de ROI para registrar Approach.
+- `--pick-area-delta`: delta relativa de área (bbox) para inferir Pick sin pose.
+
+## Formato de config/rois.json
+
+```json
+[
+  { "id": "shelf_1", "rect": [100, 200, 400, 500] },
+  { "id": "promo_zone", "points": [[50, 50], [200, 80], [180, 220], [60, 240]] }
+]
+```
+
+## Eventos y limitaciones
+
+- Se exporta `events.csv` con columnas `(track_id, roi_id, event_type, t_start, t_end, duration)`.
+- El overlay dibuja las ROIs y muestra el estado del track (Approach/Pick/In).
+- **Pick sin pose**: se infiere con heurística de cambio de área de bbox; es menos fiable ante oclusiones, ruido de detección o variaciones de escala. Para mayor precisión, habilitar pose/hand keypoints y reemplazar la heurística.
 
 ## Tests
 

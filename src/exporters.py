@@ -10,10 +10,13 @@ from typing import Any, Dict, List
 @dataclass
 class ExportBuffer:
     rows: List[Dict[str, Any]] = None
+    events: List[Dict[str, Any]] = None
 
     def __post_init__(self) -> None:
         if self.rows is None:
             self.rows = []
+        if self.events is None:
+            self.events = []
 
 
 def write_json(path: Path, rows: List[Dict[str, Any]]) -> None:
