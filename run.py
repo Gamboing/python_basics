@@ -29,6 +29,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--rois", type=Path, default=None, help="Ruta a config/rois.json")
     parser.add_argument("--approach-seconds", type=float, default=1.0, help="Tiempo mínimo dentro de ROI para 'Approach'.")
     parser.add_argument("--pick-area-delta", type=float, default=0.2, help="Delta relativa de área bbox para inferir 'Pick' sin pose.")
+    parser.add_argument("--enable-pose", action="store_true", help="Activa estimación de pose para mejorar 'Pick'.")
+    parser.add_argument("--pose-model", type=Path, default=None, help="Ruta al modelo ONNX de pose (opcional).")
+    return parser.parse_args(argv)
     return parser.parse_args(argv)
     return parser.parse_args(argv)
     return parser.parse_args()
@@ -50,6 +53,9 @@ def build_config(args: argparse.Namespace) -> AppConfig:
         video=defaults.video.override(imgsz=args.imgsz, every_n_frames=args.every_n_frames),
         detector=defaults.detector.override(conf=args.conf, iou=args.iou, imgsz=args.imgsz),
         tracker=defaults.tracker,
+        pose=defaults.pose.__class__(enabled=args.enable_pose, model_path=args.pose_model, conf=0.25, imgsz=256),
+        export=ExportConfig(json_path=args.save_json, csv_path=args.save_csv, events_path=args.events_csv),
+    )
         export=ExportConfig(json_path=args.save_json, csv_path=args.save_csv, events_path=args.events_csv),
     )
         max_frames=args.max_frames,
@@ -111,6 +117,8 @@ def main() -> None:
         raise PermissionError(f"Sin permisos de lectura para {args.model_path}")
     if args.rois and not args.rois.exists():
         raise FileNotFoundError(f"Archivo de ROIs no encontrado en {args.rois}")
+    if args.enable_pose and args.pose_model and not args.pose_model.exists():
+        raise FileNotFoundError(f"Modelo de pose no encontrado en {args.pose_model}")
     config = build_config(args)
     if config.output:
         config.output.parent.mkdir(parents=True, exist_ok=True)

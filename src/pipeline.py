@@ -16,6 +16,7 @@ from src.detector_onnx import OnnxDetector
 from src.exporters import ExportBuffer, write_csv, write_json
 from src.tracker import IoUTracker
 from src.rois import ROI, load_rois
+from src.pose import OnnxPoseEstimator, PoseResult
 from src.video_io import VideoWriter, iter_frames
 
 
@@ -29,6 +30,7 @@ class Pipeline:
         self._tracking_enabled = True
         self.rois: List[ROI] = self._load_rois()
         self._interactions: Dict[Tuple[int, str], Dict[str, float | bool]] = {}
+        self.pose_estimator: OnnxPoseEstimator | None = self._init_pose()
 
     def _init_writer(self, frame_shape, fps: float | None) -> None:
         if not self.config.output:
@@ -88,6 +90,7 @@ class Pipeline:
         logging.info("Inicio de pipeline | modo=%s | dry_run=%s", self.config.mode, self.config.dry_run)
         start_time = time.perf_counter()
         processed = 0
+        last_pose: PoseResult | None = None
         for frame_data in iter_frames(
             self.config.source,
             every_n=self.config.video.every_n_frames,
@@ -100,6 +103,13 @@ class Pipeline:
             t0 = time.perf_counter()
             detections = self.detector(frame_data.image)
             t1 = time.perf_counter()
+            if self.pose_estimator:
+                try:
+                    last_pose = self.pose_estimator(frame_data.image)
+                except Exception:
+                    logging.warning("Estimación de pose falló; desactivando pose.")
+                    self.pose_estimator = None
+            t1b = time.perf_counter()
             if self._tracking_enabled:
                 try:
                     tracks = self.tracker.update(detections)
@@ -121,6 +131,16 @@ class Pipeline:
                     logging.exception("Error al escribir frame en video de salida; se desactiva escritura.")
                     self.writer = None
             processed += 1
+            self._update_interactions(tracks, frame_time, last_pose)
+            logging.info(
+                "Frame %s | det=%.2f ms | pose=%.2f ms | track=%.2f ms | draw=%.2f ms | export=%.2f ms",
+                frame_data.index,
+                (t1 - t0) * 1e3,
+                (t1b - t1) * 1e3,
+                (t2 - t1b) * 1e3,
+                (t3 - t2) * 1e3,
+                (t4 - t3) * 1e3,
+            )
             self._update_interactions(tracks, frame_time)
             logging.info(
                 "Frame %s | det=%.2f ms | track=%.2f ms | draw=%.2f ms | export=%.2f ms",
@@ -176,6 +196,7 @@ class Pipeline:
         fps = frame_data.fps or 30.0
         return frame_data.index / fps
 
+    def _update_interactions(self, tracks, t: float, pose: PoseResult | None) -> None:
     def _update_interactions(self, tracks, t: float) -> None:
         if not self.rois:
             return
@@ -204,6 +225,14 @@ class Pipeline:
                         }
                     if state["enter_time"] is not None and state["approach_start"] is None and t - state["enter_time"] >= self.config.approach_seconds:
                         state["approach_start"] = state["enter_time"]
+                    if state["pick_time"] is None:
+                        pick_detected = False
+                        if pose:
+                            pick_detected = self._wrist_in_roi(pose, roi)
+                        if not pick_detected and prev_area:
+                            delta = abs(area - prev_area) / prev_area
+                            pick_detected = delta >= self.config.pick_area_delta and state["enter_time"] is not None
+                        if pick_detected:
                     if state["pick_time"] is None and prev_area:
                         delta = abs(area - prev_area) / prev_area
                         if delta >= self.config.pick_area_delta and state["enter_time"] is not None:
@@ -245,3 +274,25 @@ class Pipeline:
                 else:
                     labels.append(f"In@{roi_id}")
         return labels
+
+    def _init_pose(self) -> OnnxPoseEstimator | None:
+        if not self.config.pose.enabled:
+            return None
+        try:
+            model_path = (
+                str(self.config.pose.model_path)
+                if self.config.pose.model_path
+                else str(self.config.model_path).replace("detector", "pose")
+            )
+            return OnnxPoseEstimator(model_path, self.config.pose)
+        except Exception:
+            logging.exception("No se pudo inicializar el modelo de pose; continuando sin pose.")
+            return None
+
+    def _wrist_in_roi(self, pose: PoseResult, roi: ROI) -> bool:
+        for x, y, score in pose.wrists():
+            if score < self.config.pose.conf:
+                continue
+            if roi.contains(x, y):
+                return True
+        return False

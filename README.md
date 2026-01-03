@@ -65,6 +65,8 @@ python run.py \
 - `--events-csv`: ruta para exportar eventos (Approach/Pick/Leave).
 - `--approach-seconds`: tiempo mínimo dentro de ROI para registrar Approach.
 - `--pick-area-delta`: delta relativa de área (bbox) para inferir Pick sin pose.
+- `--enable-pose`: activa estimación de pose (modelo ligero ONNX tipo COCO 17 kp, usando muñecas para Pick).
+- `--pose-model`: ruta opcional a un modelo de pose; si no se especifica, se busca uno paralelo al detector.
 
 ## Formato de config/rois.json
 
@@ -80,6 +82,7 @@ python run.py \
 - Se exporta `events.csv` con columnas `(track_id, roi_id, event_type, t_start, t_end, duration)`.
 - El overlay dibuja las ROIs y muestra el estado del track (Approach/Pick/In).
 - **Pick sin pose**: se infiere con heurística de cambio de área de bbox; es menos fiable ante oclusiones, ruido de detección o variaciones de escala. Para mayor precisión, habilitar pose/hand keypoints y reemplazar la heurística.
+- **Pick con pose**: se usa un modelo ligero de pose (COCO 17 kp) y se consideran las muñecas (left/right wrist) dentro del ROI con score ≥ conf. Si el modelo es pesado para CPU o falla la inferencia, se desactiva con advertencia y se vuelve a la heurística de bbox.
 
 ## Tests
 

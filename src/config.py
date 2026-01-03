@@ -49,6 +49,14 @@ class ExportConfig:
 
 
 @dataclass(frozen=True)
+class PoseConfig:
+    enabled: bool = False
+    model_path: Optional[Path] = None
+    conf: float = 0.25
+    imgsz: int = 256
+
+
+@dataclass(frozen=True)
 class AppConfig:
     mode: str
     model_path: Path
@@ -62,6 +70,7 @@ class AppConfig:
     video: VideoConfig = field(default_factory=VideoConfig)
     detector: DetectorConfig = field(default_factory=DetectorConfig)
     tracker: TrackerConfig = field(default_factory=TrackerConfig)
+    pose: PoseConfig = field(default_factory=PoseConfig)
     export: ExportConfig = field(default_factory=ExportConfig)
 
 
@@ -86,5 +95,6 @@ def mode_defaults(mode: str) -> "AppConfig":
         video=video,
         detector=detector,
         tracker=TrackerConfig(),
+        pose=PoseConfig(),
         export=ExportConfig(),
     )
