@@ -29,6 +29,13 @@ class Pipeline:
         height, width = frame_shape[:2]
         self.writer = VideoWriter(self.config.output, fps=fps or 30.0, frame_size=(width, height))
 
+    def _init_writer(self, frame_shape) -> None:
+        if not self.config.output:
+            return
+        height, width = frame_shape[:2]
+        fps = 30.0  # fallback si no se conoce la fuente
+        self.writer = VideoWriter(self.config.output, fps=fps, frame_size=(width, height))
+
     def _draw(self, frame, tracks) -> None:
         for track in tracks:
             x1, y1, x2, y2 = map(int, track.bbox)
@@ -100,6 +107,14 @@ class Pipeline:
                 (t3 - t2) * 1e3,
                 (t4 - t3) * 1e3,
             )
+                self._init_writer(frame_data.image.shape)
+
+            detections = self.detector(frame_data.image)
+            tracks = self.tracker.update(detections)
+            self._draw(frame_data.image, tracks)
+            self._export_frame(frame_data.index, frame_data.timestamp_ms, tracks)
+            if self.writer:
+                self.writer.write(frame_data.image)
 
         if self.writer:
             self.writer.close()
