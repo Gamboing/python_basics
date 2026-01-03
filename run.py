@@ -1,8 +1,12 @@
 import argparse
+import logging
 import os
 from pathlib import Path
 
 from src.config import AppConfig, ExportConfig, mode_defaults
+
+
+def parse_args(argv=None) -> argparse.Namespace:
 from src.pipeline import Pipeline
 
 
@@ -19,16 +23,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--save-json", type=Path, default=None, help="Guardar detecciones/tracks en JSON.")
     parser.add_argument("--save-csv", type=Path, default=None, help="Guardar detecciones/tracks en CSV.")
     parser.add_argument("--max-frames", type=int, default=None, help="Limitar número de frames procesados.")
+    parser.add_argument("--dry-run", action="store_true", help="Procesa solo 100 frames para prueba rápida.")
+    parser.add_argument("--log-level", default="INFO", help="Nivel de logging (DEBUG, INFO, WARNING...).")
+    return parser.parse_args(argv)
     return parser.parse_args()
 
 
 def build_config(args: argparse.Namespace) -> AppConfig:
     defaults = mode_defaults(args.mode)
+    max_frames = args.max_frames if args.max_frames is not None else (100 if args.dry_run else None)
     return AppConfig(
         mode=args.mode,
         model_path=args.model_path,
         source=args.source,
         output=args.output,
+        max_frames=max_frames,
+        dry_run=args.dry_run,
         max_frames=args.max_frames,
         video=defaults.video.override(imgsz=args.imgsz, every_n_frames=args.every_n_frames),
         detector=defaults.detector.override(conf=args.conf, iou=args.iou, imgsz=args.imgsz),
@@ -79,6 +89,20 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    logging.basicConfig(level=args.log_level.upper(), format="%(asctime)s [%(levelname)s] %(message)s")
+    if not args.model_path.exists():
+        raise FileNotFoundError(f"Modelo no encontrado en {args.model_path}")
+    if not args.model_path.is_file():
+        raise IsADirectoryError(f"Ruta de modelo no es archivo: {args.model_path}")
+    if not os.access(args.model_path, os.R_OK):
+        raise PermissionError(f"Sin permisos de lectura para {args.model_path}")
+    config = build_config(args)
+    if config.output:
+        config.output.parent.mkdir(parents=True, exist_ok=True)
+    from src.pipeline import Pipeline
+
+    pipeline = Pipeline(config)
+    pipeline.run()
     config = build_config(args)
     os.makedirs(config.output.parent, exist_ok=True) if config.output else None
     pipeline = Pipeline(config)

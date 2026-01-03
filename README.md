@@ -17,6 +17,8 @@ python run.py \
   --model-path models/detector.onnx \
   --source data/video.mp4 \
   --mode fast \
+  --output runs/out.mp4 \
+  --log-level INFO
   --output runs/out.mp4
 ```
 
@@ -40,6 +42,7 @@ python run.py \
 
 ## Ejemplo avanzado
 
+```bash
 ```bas
 python run.py \
   --model-path models/detector.onnx \
@@ -47,6 +50,24 @@ python run.py \
   --every-n-frames 3 \
   --mode quality \
   --output runs/out.mp4 \
+  --save-json runs/out.json \
+  --dry-run
+```
+
+## Flags útiles de robustez
+
+- `--dry-run`: procesa 100 frames para probar rápido la ruta de datos y el modelo.
+- `--log-level`: controla verbosidad (DEBUG/INFO/WARNING) e imprime tiempos por etapa y FPS aproximado.
+
+## Tests
+
+```bash
+python -m unittest tests/test_pipeline.py
+```
+
+## Licencia
+
+MIT (ver `LICENSE`).
   --save-json runs/out.json
 ```
 

@@ -54,6 +54,7 @@ class AppConfig:
     source: str
     output: Optional[Path]
     max_frames: Optional[int]
+    dry_run: bool = False
     video: VideoConfig = field(default_factory=VideoConfig)
     detector: DetectorConfig = field(default_factory=DetectorConfig)
     tracker: TrackerConfig = field(default_factory=TrackerConfig)
@@ -74,6 +75,7 @@ def mode_defaults(mode: str) -> "AppConfig":
         source="0",
         output=None,
         max_frames=None,
+        dry_run=False,
         video=video,
         detector=detector,
         tracker=TrackerConfig(),

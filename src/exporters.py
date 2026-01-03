@@ -22,6 +22,9 @@ def write_json(path: Path, rows: List[Dict[str, Any]]) -> None:
 
 
 def write_csv(path: Path, rows: List[Dict[str, Any]]) -> None:
+    # Crear archivo incluso si no hay filas, para señalar que se intentó exportar.
+    if not rows:
+        path.touch()
     if not rows:
         return
     keys = list(rows[0].keys())
