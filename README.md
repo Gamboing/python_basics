@@ -95,6 +95,11 @@ python -m unittest tests/test_pipeline.py
 ```bash
 docker compose up -d
 python -m tools.ingest_products_excel --db-url $DATABASE_URL --excel /mnt/data/Muebles.xlsx
+# Ventas (hoja "Ventas" o archivo separado)
+python -m tools.ingest_sales_excel --db-url $DATABASE_URL --excel /mnt/data/Muebles.xlsx --sheet Ventas
+```
+- Los errores y advertencias se guardan en `outputs/etl_errors_products.csv`.
+  - Para ventas: `outputs/etl_errors_sales.csv`. Si falta la hoja/archivo, se genera `outputs/plantilla_ventas.xlsx`.
 ```
 - Los errores y advertencias se guardan en `outputs/etl_errors_products.csv`.
 ## Licencia
