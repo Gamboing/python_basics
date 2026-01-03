@@ -90,6 +90,13 @@ python run.py \
 python -m unittest tests/test_pipeline.py
 ```
 
+## ETL de productos (Excel → Postgres)
+
+```bash
+docker compose up -d
+python -m tools.ingest_products_excel --db-url $DATABASE_URL --excel /mnt/data/Muebles.xlsx
+```
+- Los errores y advertencias se guardan en `outputs/etl_errors_products.csv`.
 ## Licencia
 
 MIT (ver `LICENSE`).
