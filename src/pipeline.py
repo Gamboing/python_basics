@@ -7,6 +7,9 @@ from typing import Dict, List, Tuple
 
 import cv2
 import numpy as np
+from typing import Dict, List
+
+import cv2
 
 from src.config import AppConfig
 from src.detector_onnx import OnnxDetector
@@ -49,6 +52,20 @@ class Pipeline:
             cv2.putText(
                 frame,
                 label_text,
+    def _init_writer(self, frame_shape) -> None:
+        if not self.config.output:
+            return
+        height, width = frame_shape[:2]
+        fps = 30.0  # fallback si no se conoce la fuente
+        self.writer = VideoWriter(self.config.output, fps=fps, frame_size=(width, height))
+
+    def _draw(self, frame, tracks) -> None:
+        for track in tracks:
+            x1, y1, x2, y2 = map(int, track.bbox)
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 200, 0), 2)
+            cv2.putText(
+                frame,
+                f"ID {track.track_id} {track.score:.2f}",
                 (x1, max(0, y1 - 5)),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.5,
@@ -124,6 +141,23 @@ class Pipeline:
                 (t3 - t2) * 1e3,
                 (t4 - t3) * 1e3,
             )
+            self._update_interactions(tracks, frame_time)
+            logging.info(
+                "Frame %s | det=%.2f ms | track=%.2f ms | draw=%.2f ms | export=%.2f ms",
+                frame_data.index,
+                (t1 - t0) * 1e3,
+                (t2 - t1) * 1e3,
+                (t3 - t2) * 1e3,
+                (t4 - t3) * 1e3,
+            )
+                self._init_writer(frame_data.image.shape)
+
+            detections = self.detector(frame_data.image)
+            tracks = self.tracker.update(detections)
+            self._draw(frame_data.image, tracks)
+            self._export_frame(frame_data.index, frame_data.timestamp_ms, tracks)
+            if self.writer:
+                self.writer.write(frame_data.image)
 
         if self.writer:
             self.writer.close()
@@ -163,6 +197,7 @@ class Pipeline:
         return frame_data.index / fps
 
     def _update_interactions(self, tracks, t: float, pose: PoseResult | None) -> None:
+    def _update_interactions(self, tracks, t: float) -> None:
         if not self.rois:
             return
         for track in tracks:
@@ -198,6 +233,9 @@ class Pipeline:
                             delta = abs(area - prev_area) / prev_area
                             pick_detected = delta >= self.config.pick_area_delta and state["enter_time"] is not None
                         if pick_detected:
+                    if state["pick_time"] is None and prev_area:
+                        delta = abs(area - prev_area) / prev_area
+                        if delta >= self.config.pick_area_delta and state["enter_time"] is not None:
                             state["pick_time"] = t
                 else:
                     if state["inside"]:
