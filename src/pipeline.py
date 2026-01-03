@@ -7,6 +7,9 @@ from typing import Dict, List, Tuple
 
 import cv2
 import numpy as np
+from typing import Dict, List
+
+import cv2
 
 from src.config import AppConfig
 from src.detector_onnx import OnnxDetector
@@ -47,6 +50,20 @@ class Pipeline:
             cv2.putText(
                 frame,
                 label_text,
+    def _init_writer(self, frame_shape) -> None:
+        if not self.config.output:
+            return
+        height, width = frame_shape[:2]
+        fps = 30.0  # fallback si no se conoce la fuente
+        self.writer = VideoWriter(self.config.output, fps=fps, frame_size=(width, height))
+
+    def _draw(self, frame, tracks) -> None:
+        for track in tracks:
+            x1, y1, x2, y2 = map(int, track.bbox)
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 200, 0), 2)
+            cv2.putText(
+                frame,
+                f"ID {track.track_id} {track.score:.2f}",
                 (x1, max(0, y1 - 5)),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 0.5,
@@ -113,6 +130,14 @@ class Pipeline:
                 (t3 - t2) * 1e3,
                 (t4 - t3) * 1e3,
             )
+                self._init_writer(frame_data.image.shape)
+
+            detections = self.detector(frame_data.image)
+            tracks = self.tracker.update(detections)
+            self._draw(frame_data.image, tracks)
+            self._export_frame(frame_data.index, frame_data.timestamp_ms, tracks)
+            if self.writer:
+                self.writer.write(frame_data.image)
 
         if self.writer:
             self.writer.close()
