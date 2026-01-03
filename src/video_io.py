@@ -45,6 +45,13 @@ def iter_frames(source: str, every_n: int = 1, max_frames: Optional[int] = None)
             if idx % every_n == 0:
                 timestamp_ms = cap.get(cv2.CAP_PROP_POS_MSEC)
                 yield FrameData(index=idx, image=frame, timestamp_ms=timestamp_ms if timestamp_ms > 0 else None, fps=fps)
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            if idx % every_n == 0:
+                timestamp_ms = cap.get(cv2.CAP_PROP_POS_MSEC)
+                yield FrameData(index=idx, image=frame, timestamp_ms=timestamp_ms if timestamp_ms > 0 else None)
                 yielded += 1
                 if max_frames and yielded >= max_frames:
                     break
@@ -58,6 +65,8 @@ class VideoWriter:
         path.parent.mkdir(parents=True, exist_ok=True)
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")
         self.writer = cv2.VideoWriter(str(path), fourcc, fps if fps and fps > 0 else 30.0, frame_size)
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        self.writer = cv2.VideoWriter(str(path), fourcc, fps, frame_size)
         if not self.writer.isOpened():
             raise RuntimeError(f"No se pudo abrir escritor de video en {path}")
 

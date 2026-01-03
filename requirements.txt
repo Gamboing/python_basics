@@ -6,3 +6,9 @@ typing-extensions==4.11.0
 sqlalchemy==2.0.29
 pandas==2.2.2
 openpyxl==3.1.2
+numpy
+opencv-python
+onnxruntime
+norfair
+pandas
+tqdm
