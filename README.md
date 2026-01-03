@@ -57,6 +57,12 @@ python run.py \
 - `--dry-run`: procesa 100 frames para probar rápido la ruta de datos y el modelo.
 - `--log-level`: controla verbosidad (DEBUG/INFO/WARNING) e imprime tiempos por etapa y FPS aproximado.
 
+## Tests
+
+```bash
+python -m unittest tests/test_pipeline.py
+```
+
 ## Licencia
 
 MIT (ver `LICENSE`).

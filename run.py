@@ -4,10 +4,9 @@ import os
 from pathlib import Path
 
 from src.config import AppConfig, ExportConfig, mode_defaults
-from src.pipeline import Pipeline
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv=None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="CPU-first ONNX detector pipeline")
     parser.add_argument("--model-path", type=Path, required=True, help="Ruta al modelo ONNX.")
     parser.add_argument("--source", type=str, default="0", help="Ruta a video/imagen o webcam id.")
@@ -22,7 +21,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-frames", type=int, default=None, help="Limitar número de frames procesados.")
     parser.add_argument("--dry-run", action="store_true", help="Procesa solo 100 frames para prueba rápida.")
     parser.add_argument("--log-level", default="INFO", help="Nivel de logging (DEBUG, INFO, WARNING...).")
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
 def build_config(args: argparse.Namespace) -> AppConfig:
@@ -54,6 +53,8 @@ def main() -> None:
     config = build_config(args)
     if config.output:
         config.output.parent.mkdir(parents=True, exist_ok=True)
+    from src.pipeline import Pipeline
+
     pipeline = Pipeline(config)
     pipeline.run()
 
